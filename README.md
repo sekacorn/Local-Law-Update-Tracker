@@ -1,6 +1,8 @@
 # LLUT - Local Law Update Tracker
 
-A local-first desktop application for tracking and analyzing legal updates from authoritative sources (US Congress, Executive Orders, Supreme Court rulings, and international law sources).
+A local-first desktop application that summarizes and analyzes Terms of Use, legal contracts, leases, and employment agreements, identifying risks, obligations, and conflicts with local ordinances.
+It tracks legal updates from authoritative sources (including US Congress, Executive Orders, Supreme Court rulings, and selected international law sources) and automatically re-analyzes documents as laws and regulations change.
+Please review the documentation for setup, data sources, and usage details.
 
 ## Screenshots
 
