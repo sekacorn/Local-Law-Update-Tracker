@@ -1,0 +1,72 @@
+LLUT (Local Law Update Tracker) - Dual License Notice
+======================================================
+
+Copyright (C) 2026 Sekacorn <sekacorn@gmail.com>
+
+This software is licensed under a dual-license model. You may choose to use,
+modify, and distribute this software under the terms of EITHER:
+
+  1. The GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later), OR
+  2. A Commercial Proprietary License
+
+You must select one license for your use case. You may not combine or mix
+elements from both licenses in a single deployment or distribution.
+
+------------------------------------------------------------------------------
+
+OPTION 1: GNU AFFERO GENERAL PUBLIC LICENSE (AGPL-3.0-or-later)
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this program. If not, see <https://www.gnu.org/licenses/>.
+
+The complete text of the GNU Affero General Public License v3.0 can be found at:
+https://www.gnu.org/licenses/agpl-3.0.txt
+
+IMPORTANT: The AGPL-3.0 license requires that if you modify this software and
+make it available as a network service (including SaaS, hosted applications, or
+web services), you MUST make the complete source code of your modified version
+available to all users of that service.
+
+------------------------------------------------------------------------------
+
+OPTION 2: COMMERCIAL PROPRIETARY LICENSE
+
+If you wish to use this software in a manner that does not comply with the
+AGPL-3.0-or-later license terms (for example, in closed-source applications,
+proprietary modifications, or SaaS deployments without source disclosure),
+you must obtain a Commercial Proprietary License.
+
+For commercial licensing inquiries, please contact:
+
+  Email: sekacorn@gmail.com
+
+See LICENSE-COMMERCIAL.md for the full commercial license terms.
+
+------------------------------------------------------------------------------
+
+CHOOSING A LICENSE
+
+- If you are unsure which license applies to your use case, see LICENSE-OVERVIEW.md
+- For personal, nonprofit, or open source use complying with AGPL terms: use AGPL
+- For closed-source, proprietary, or non-disclosing SaaS use: contact us for a commercial license
+
+This notice must be retained in all copies or substantial portions of the software.
+
+------------------------------------------------------------------------------
+
+NO LEGAL ADVICE DISCLAIMER
+
+This license notice is provided for informational purposes only and does not
+constitute legal advice. You should consult with a qualified attorney to
+determine which license is appropriate for your specific situation and to
+ensure compliance with applicable laws and license terms.

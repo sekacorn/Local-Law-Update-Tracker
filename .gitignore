@@ -1,0 +1,253 @@
+# LLUT .gitignore
+# Prevent committing temporary files, build artifacts, and sensitive data
+
+# ===========================
+# Application Data
+# ===========================
+app_data/llut.db
+app_data/llut.db-journal
+app_data/llut.db-wal
+app_data/llut.db-shm
+app_data/cache/
+app_data/settings.json
+
+# User uploaded documents (ignore all uploads but keep directory structure)
+app_data/uploads/*
+!app_data/uploads/.gitkeep
+
+# Keep the directory structure
+!app_data/.gitkeep
+
+# ===========================
+# Python Backend
+# ===========================
+# Virtual environments
+backend/venv/
+backend/env/
+backend/.venv/
+
+# Python cache
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/**/*.pyd
+*.py[cod]
+*$py.class
+
+# PyInstaller
+backend/build/
+backend/dist/
+backend/*.spec
+
+# Testing
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.tox/
+backend/.nox/
+
+# Type checking
+backend/.mypy_cache/
+backend/.pytype/
+backend/.pyre/
+
+# Jupyter Notebook
+backend/.ipynb_checkpoints
+
+# ===========================
+# Frontend (Node.js/React)
+# ===========================
+# Dependencies
+apps/desktop/node_modules/
+node_modules/
+
+# Build outputs
+apps/desktop/dist/
+apps/desktop/build/
+apps/desktop/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+apps/desktop/coverage/
+
+# ===========================
+# Tauri
+# ===========================
+# Build artifacts
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/resources/llut-backend
+apps/desktop/src-tauri/resources/llut-backend.exe
+
+# Tauri WiX build files (Windows)
+apps/desktop/src-tauri/WixTools/
+
+# ===========================
+# Rust/Cargo
+# ===========================
+target/
+Cargo.lock
+
+# ===========================
+# IDE & Editors
+# ===========================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ===========================
+# OS Files
+# ===========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ===========================
+# Process & Runtime Files
+# ===========================
+# PID files
+.backend.pid
+.frontend.pid
+
+# Log files
+backend.log
+frontend.log
+
+# ===========================
+# Build & Distribution
+# ===========================
+# Installers
+*.exe
+*.dmg
+*.deb
+*.rpm
+*.msi
+*.pkg
+*.AppImage
+
+# Except if in a releases directory
+!releases/*.exe
+!releases/*.dmg
+!releases/*.deb
+!releases/*.AppImage
+
+# Compressed archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ===========================
+# Secrets & Config
+# ===========================
+# API keys and credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets.json
+credentials.json
+
+# Local configuration overrides
+config.local.json
+settings.local.json
+
+# ===========================
+# Testing & Documentation
+# ===========================
+# Test coverage
+.coverage.*
+coverage/
+htmlcov/
+
+# Documentation builds
+docs/_build/
+site/
+
+# ===========================
+# Temporary Files
+# ===========================
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# ===========================
+# Development Tools
+# ===========================
+# npm/yarn
+.npm
+.yarn
+.pnp.*
+
+# Python eggs
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# Benchmarks
+benchmarks/results/
+
+# ===========================
+# Git Utilities
+# ===========================
+*.orig
+*.rej
+*.patch
+
+# ===========================
+# Custom
+# ===========================
+# Add any project-specific ignores below
+
+# Development fixtures (optional - remove if you want to commit test data)
+backend/tests/fixtures/downloads/

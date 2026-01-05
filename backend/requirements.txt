@@ -1,0 +1,31 @@
+# LLUT Backend - Ultra Minimal Requirements for Quick MVP Testing
+# Absolute essentials only - avoiding packages with heavy dependencies
+
+# Web Framework
+fastapi==0.109.0
+uvicorn==0.27.0
+
+# Validation & Settings
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Database
+aiosqlite==0.19.0
+
+# HTTP Clients
+httpx==0.26.0
+
+# HTML Parsing (lightweight)
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# Document Parsing (Phase 2: User Uploads)
+PyPDF2==3.0.1          # PDF parsing
+python-docx==1.1.0     # DOCX parsing
+chardet==5.2.0         # Character encoding detection
+python-magic-bin==0.4.14  # MIME type detection (Windows compatible)
+python-multipart==0.0.20  # File upload support
+
+# Basic utilities
+python-dateutil==2.8.2
+python-dotenv==1.0.0

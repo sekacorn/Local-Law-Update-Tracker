@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "storage_mode": "full",
+  "cache_retention_days": 30,
+  "sources": {
+    "congress_gov": {
+      "enabled": true,
+      "api_key": "",
+      "poll_interval_minutes": 1440
+    },
+    "govinfo": {
+      "enabled": true,
+      "api_key": "",
+      "poll_interval_minutes": 1440
+    },
+    "federal_register": {
+      "enabled": true,
+      "api_key": "",
+      "poll_interval_minutes": 1440
+    },
+    "scotus": {
+      "enabled": true,
+      "api_key": "",
+      "poll_interval_minutes": 1440
+    }
+  },
+  "ui": {
+    "theme": "light",
+    "default_view": "dashboard"
+  },
+  "search": {
+    "results_per_page": 20,
+    "snippet_length": 200
+  },
+  "last_updated": "2026-01-02T17:51:02.614190"
+}
