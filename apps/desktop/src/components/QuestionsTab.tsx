@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import { useState } from 'react'
+import { LoadingSkeleton } from './LoadingSkeleton'
 
 interface QuestionsTabProps {
   versionId: string
@@ -18,6 +19,9 @@ export default function QuestionsTab({ versionId }: QuestionsTabProps) {
         max_length: 'medium',
       }),
     enabled: !!versionId,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    cacheTime: 60 * 60 * 1000, // 1 hour
+    keepPreviousData: true,
   })
 
   const toggleQuestion = (idx: number) => {
@@ -31,11 +35,7 @@ export default function QuestionsTab({ versionId }: QuestionsTabProps) {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600 dark:text-gray-400">Generating questions...</div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   const questions = summaryData?.summary?.questions_for_professional || []

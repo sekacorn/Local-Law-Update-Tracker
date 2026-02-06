@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { api } from '../lib/api'
 import SummaryTab from '../components/SummaryTab'
 import WarningsTab from '../components/WarningsTab'
@@ -9,22 +9,60 @@ import PowerImbalancesTab from '../components/PowerImbalancesTab'
 
 type TabType = 'metadata' | 'content' | 'summary' | 'warnings' | 'questions' | 'power-imbalances'
 
+interface Citation {
+  doc_id: string
+  version_id: string
+  text: string
+  quote_text?: string
+  verified: boolean
+  match_method: string
+  confidence: number
+  location: {
+    section?: string
+    page?: number
+    char_start?: number
+    char_end?: number
+  }
+}
+
 export default function DocumentViewer() {
   const { id } = useParams<{ id: string }>()
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabType>('metadata')
+  const [highlightedCitation, setHighlightedCitation] = useState<Citation | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['document', id],
     queryFn: () => api.get(`/api/docs/${id}`),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
   })
 
   const { data: versionData } = useQuery({
     queryKey: ['version', selectedVersionId],
     queryFn: () => api.get(`/api/docs/versions/${selectedVersionId}`),
     enabled: !!selectedVersionId,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 30 * 60 * 1000,
+    keepPreviousData: true, // Prevent flash when switching versions
   })
+
+  // Handler for jumping to citation
+  const handleJumpToCitation = (citation: Citation) => {
+    // Switch to content tab
+    setActiveTab('content')
+    // Set highlighted citation
+    setHighlightedCitation(citation)
+    // Scroll after a small delay to ensure tab switch completes
+    setTimeout(() => {
+      const element = document.getElementById(`citation-${citation.location.char_start}`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+  }
 
   if (isLoading) {
     return (
@@ -213,7 +251,7 @@ export default function DocumentViewer() {
       )}
 
       {activeTab === 'content' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6" ref={contentRef}>
           {versionData ? (
             <div>
               <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -228,9 +266,10 @@ export default function DocumentViewer() {
               </div>
 
               <div className="prose dark:prose-invert max-w-none">
-                <pre className="whitespace-pre-wrap text-gray-900 dark:text-gray-100 font-sans">
-                  {versionData.normalized_text || 'No content available'}
-                </pre>
+                <HighlightedText
+                  text={versionData.normalized_text || 'No content available'}
+                  highlightedCitation={highlightedCitation}
+                />
               </div>
             </div>
           ) : (
@@ -243,12 +282,19 @@ export default function DocumentViewer() {
 
       {/* Summary Tab */}
       {activeTab === 'summary' && selectedVersionId && (
-        <SummaryTab versionId={selectedVersionId} docId={id || ''} />
+        <SummaryTab
+          versionId={selectedVersionId}
+          docId={id || ''}
+          onJumpToCitation={handleJumpToCitation}
+        />
       )}
 
       {/* Warnings Tab */}
       {activeTab === 'warnings' && selectedVersionId && (
-        <WarningsTab versionId={selectedVersionId} />
+        <WarningsTab
+          versionId={selectedVersionId}
+          onJumpToCitation={handleJumpToCitation}
+        />
       )}
 
       {/* Questions Tab */}
@@ -262,6 +308,44 @@ export default function DocumentViewer() {
       )}
     </div>
   )
+}
+
+// Highlighted Text Component
+function HighlightedText({
+  text,
+  highlightedCitation,
+}: {
+  text: string
+  highlightedCitation: Citation | null
+}) {
+  const rendered = useMemo(() => {
+    if (!highlightedCitation || !highlightedCitation.location.char_start || !highlightedCitation.location.char_end) {
+      return <pre className="whitespace-pre-wrap text-gray-900 dark:text-gray-100 font-sans">{text}</pre>
+    }
+
+    const start = highlightedCitation.location.char_start
+    const end = highlightedCitation.location.char_end
+
+    const before = text.substring(0, start)
+    const highlighted = text.substring(start, end)
+    const after = text.substring(end)
+
+    return (
+      <pre className="whitespace-pre-wrap text-gray-900 dark:text-gray-100 font-sans">
+        {before}
+        <mark
+          id={`citation-${start}`}
+          className="bg-yellow-200 dark:bg-yellow-700 px-1 rounded animate-pulse"
+          style={{ animationIterationCount: 3 }}
+        >
+          {highlighted}
+        </mark>
+        {after}
+      </pre>
+    )
+  }, [text, highlightedCitation])
+
+  return rendered
 }
 
 // Tab Button Component

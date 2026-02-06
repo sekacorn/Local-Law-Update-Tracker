@@ -1,8 +1,27 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import CitationChip from './CitationChip'
+import { WarningLoadingSkeleton } from './LoadingSkeleton'
+
+interface Citation {
+  doc_id: string
+  version_id: string
+  text: string
+  quote_text?: string
+  verified: boolean
+  match_method: string
+  confidence: number
+  location: {
+    section?: string
+    page?: number
+    char_start?: number
+    char_end?: number
+  }
+}
 
 interface WarningsTabProps {
   versionId: string
+  onJumpToCitation: (citation: Citation) => void
 }
 
 const RISK_COLORS = {
@@ -37,7 +56,7 @@ const CATEGORY_ICONS = {
   confidentiality: '🤐',
 }
 
-export default function WarningsTab({ versionId }: WarningsTabProps) {
+export default function WarningsTab({ versionId, onJumpToCitation }: WarningsTabProps) {
   const { data: summaryData, isLoading } = useQuery({
     queryKey: ['summary', versionId],
     queryFn: () =>
@@ -47,14 +66,13 @@ export default function WarningsTab({ versionId }: WarningsTabProps) {
         max_length: 'medium',
       }),
     enabled: !!versionId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - summaries don't change
+    cacheTime: 60 * 60 * 1000, // 1 hour
+    keepPreviousData: true,
   })
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600 dark:text-gray-400">Analyzing for warnings...</div>
-      </div>
-    )
+    return <WarningLoadingSkeleton />
   }
 
   const warnings = summaryData?.summary?.warnings || []
@@ -106,7 +124,7 @@ export default function WarningsTab({ versionId }: WarningsTabProps) {
             High Risk ({groupedWarnings.high.length})
           </h3>
           {groupedWarnings.high.map((warning: any, idx: number) => (
-            <WarningCard key={idx} warning={warning} riskLevel="high" />
+            <WarningCard key={idx} warning={warning} riskLevel="high" onJumpToCitation={onJumpToCitation} />
           ))}
         </div>
       )}
@@ -119,7 +137,7 @@ export default function WarningsTab({ versionId }: WarningsTabProps) {
             Medium Risk ({groupedWarnings.medium.length})
           </h3>
           {groupedWarnings.medium.map((warning: any, idx: number) => (
-            <WarningCard key={idx} warning={warning} riskLevel="medium" />
+            <WarningCard key={idx} warning={warning} riskLevel="medium" onJumpToCitation={onJumpToCitation} />
           ))}
         </div>
       )}
@@ -132,7 +150,7 @@ export default function WarningsTab({ versionId }: WarningsTabProps) {
             Low Risk ({groupedWarnings.low.length})
           </h3>
           {groupedWarnings.low.map((warning: any, idx: number) => (
-            <WarningCard key={idx} warning={warning} riskLevel="low" />
+            <WarningCard key={idx} warning={warning} riskLevel="low" onJumpToCitation={onJumpToCitation} />
           ))}
         </div>
       )}
@@ -157,7 +175,15 @@ export default function WarningsTab({ versionId }: WarningsTabProps) {
   )
 }
 
-function WarningCard({ warning, riskLevel }: { warning: any; riskLevel: string }) {
+function WarningCard({
+  warning,
+  riskLevel,
+  onJumpToCitation,
+}: {
+  warning: any
+  riskLevel: string
+  onJumpToCitation: (citation: Citation) => void
+}) {
   const colors = RISK_COLORS[riskLevel as keyof typeof RISK_COLORS] || RISK_COLORS.medium
   const icon = CATEGORY_ICONS[warning.category as keyof typeof CATEGORY_ICONS] || '📋'
 
@@ -183,15 +209,19 @@ function WarningCard({ warning, riskLevel }: { warning: any; riskLevel: string }
                 View clause text
               </summary>
               <div className="mt-2 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                <p className="text-gray-700 dark:text-gray-300 italic text-xs">
+                <p className="text-gray-700 dark:text-gray-300 italic text-xs mb-3">
                   "{warning.citation_text}"
                 </p>
-                {warning.citation_context && (
-                  <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-gray-600 dark:text-gray-400 text-xs">
-                      Context: {warning.citation_context}
-                    </p>
-                  </div>
+
+                {/* Jump to citation button if we have location info */}
+                {warning.citation && warning.citation.location && (
+                  <button
+                    onClick={() => onJumpToCitation(warning.citation)}
+                    className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>📍</span>
+                    Jump to source text
+                  </button>
                 )}
               </div>
             </details>

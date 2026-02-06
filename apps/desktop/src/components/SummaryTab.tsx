@@ -1,12 +1,33 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import CitationChip from './CitationChip'
+import ConfidencePanel from './ConfidencePanel'
+import { LoadingSkeleton } from './LoadingSkeleton'
+
+interface Citation {
+  doc_id: string
+  version_id: string
+  text: string
+  quote_text?: string
+  verified: boolean
+  match_method: string
+  confidence: number
+  confidence_reasons?: string[]
+  location: {
+    section?: string
+    page?: number
+    char_start?: number
+    char_end?: number
+  }
+}
 
 interface SummaryTabProps {
   versionId: string
   docId: string
+  onJumpToCitation: (citation: Citation) => void
 }
 
-export default function SummaryTab({ versionId, docId }: SummaryTabProps) {
+export default function SummaryTab({ versionId, docId, onJumpToCitation }: SummaryTabProps) {
   const { data: summaryData, isLoading, error } = useQuery({
     queryKey: ['summary', versionId],
     queryFn: () =>
@@ -16,14 +37,13 @@ export default function SummaryTab({ versionId, docId }: SummaryTabProps) {
         max_length: 'medium',
       }),
     enabled: !!versionId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - summaries don't change often
+    cacheTime: 60 * 60 * 1000, // 1 hour
+    keepPreviousData: true,
   })
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-600 dark:text-gray-400">Generating summary...</div>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   if (error) {
@@ -99,43 +119,34 @@ export default function SummaryTab({ versionId, docId }: SummaryTabProps) {
         </div>
       )}
 
-      {/* Confidence Meter */}
-      {grounding && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-            Analysis Confidence
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${
-                      grounding.confidence >= 0.8
-                        ? 'bg-green-500'
-                        : grounding.confidence >= 0.5
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                    }`}
-                    style={{ width: `${grounding.confidence * 100}%` }}
-                  />
-                </div>
-              </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-16 text-right">
-                {(grounding.confidence * 100).toFixed(0)}%
-              </span>
-            </div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {grounding.can_cite ? (
-                <span className="text-green-600 dark:text-green-400">✓ Citations available</span>
-              ) : (
-                <span className="text-red-600 dark:text-red-400">⚠ Limited citation support</span>
-              )}
-              {' • '}
-              {grounding.citation_count} citation{grounding.citation_count !== 1 ? 's' : ''} extracted
+      {/* Low Confidence Banner */}
+      {grounding && grounding.confidence < 0.5 && (
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-1">
+                Low Confidence Analysis
+              </h3>
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                The analysis confidence is below 50%. Please carefully review the cited text in the original document
+                to verify accuracy. Some citations may not have been verified in the extracted text.
+              </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confidence Panel */}
+      {grounding && (
+        <ConfidencePanel
+          confidence={grounding.confidence}
+          confidenceReasons={grounding.confidence_reasons || []}
+          verifiedCount={grounding.verified_count || 0}
+          totalCount={grounding.citation_count || 0}
+          exactMatches={grounding.exact_matches || 0}
+          fuzzyMatches={grounding.fuzzy_matches || 0}
+        />
       )}
 
       {/* Summary Sections */}
@@ -148,20 +159,22 @@ export default function SummaryTab({ versionId, docId }: SummaryTabProps) {
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
               {section.content}
             </p>
-            {section.citations && section.citations.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <details className="text-sm">
-                  <summary className="cursor-pointer text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">
-                    View citations ({section.citations.length})
-                  </summary>
-                  <div className="mt-2 space-y-2">
-                    {section.citations.map((cite: any, cidx: number) => (
-                      <div key={cidx} className="text-gray-600 dark:text-gray-400 text-xs">
-                        Chars {cite.start}-{cite.end}
-                      </div>
-                    ))}
-                  </div>
-                </details>
+            {/* Render Citations from API (grounding.citations) */}
+            {summaryData.summary?.citations && summaryData.summary.citations.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  📚 Sources ({summaryData.summary.citations.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {summaryData.summary.citations.slice(0, 10).map((citation: Citation, cidx: number) => (
+                    <CitationChip
+                      key={cidx}
+                      citation={citation}
+                      index={cidx}
+                      onJumpToCitation={onJumpToCitation}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>

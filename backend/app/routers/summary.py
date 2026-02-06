@@ -74,9 +74,10 @@ async def summarize_document(request: SummarizeRequest) -> Dict[str, Any]:
                        "Try fetching the full version first."
             )
 
-        # For user uploads, extract citations and check grounding confidence
+        # For user uploads, extract citations with verification and check grounding confidence
         citations = []
         citation_confidence = 1.0  # Default for government docs
+        confidence_reasons = []
 
         if version.get("is_user_uploaded"):
             citations, citation_confidence = citation_extractor.extract_upload_citations(
@@ -84,6 +85,38 @@ async def summarize_document(request: SummarizeRequest) -> Dict[str, Any]:
                 doc_id=version["doc_id"],
                 version_id=request.version_id
             )
+
+            # Persist citations to database
+            if citations:
+                import uuid
+                citation_dicts = []
+                for citation in citations:
+                    citation_id = str(uuid.uuid4())
+                    citation_dicts.append({
+                        "id": citation_id,
+                        "document_id": citation.doc_id,
+                        "version_id": citation.version_id,
+                        "quote_text": citation.text,
+                        "start_char": citation.location.char_start,
+                        "end_char": citation.location.char_end,
+                        "verified": citation.verified,
+                        "match_method": citation.match_method,
+                        "confidence": citation.confidence,
+                        "heading": citation.location.section,
+                        "page_number": citation.location.page
+                    })
+
+                # Save citations to database
+                saved_count = await db.save_citations_batch(citation_dicts)
+                print(f"Saved {saved_count} citation spans to database for version {request.version_id}")
+
+            # Collect confidence reasons from citations
+            if citations:
+                # Aggregate unique reasons from all citations
+                all_reasons = set()
+                for citation in citations:
+                    all_reasons.update(citation.confidence_reasons)
+                confidence_reasons = list(all_reasons)
 
             # Check if we can reliably cite this document
             if not citation_extractor.can_cite(citation_confidence):
@@ -94,7 +127,8 @@ async def summarize_document(request: SummarizeRequest) -> Dict[str, Any]:
                         "message": "Cannot generate summary with sufficient citation confidence. "
                                    "The document structure may be too complex or poorly formatted.",
                         "confidence": citation_confidence,
-                        "threshold": citation_extractor.MIN_CONFIDENCE_THRESHOLD
+                        "threshold": citation_extractor.MIN_CONFIDENCE_THRESHOLD,
+                        "reasons": confidence_reasons
                     }
                 )
 
@@ -107,13 +141,17 @@ async def summarize_document(request: SummarizeRequest) -> Dict[str, Any]:
             max_length=request.max_length
         )
 
-        # Add citation information to summary
+        # Add citation information to summary with verification details
         summary["citations"] = [c.to_dict() for c in citations]
         summary["citation_confidence"] = citation_confidence
         summary["grounding"] = {
             "can_cite": citation_extractor.can_cite(citation_confidence),
             "confidence": citation_confidence,
-            "citation_count": len(citations)
+            "confidence_reasons": confidence_reasons,
+            "citation_count": len(citations),
+            "verified_count": sum(1 for c in citations if c.verified),
+            "exact_matches": sum(1 for c in citations if c.match_method == "exact"),
+            "fuzzy_matches": sum(1 for c in citations if c.match_method == "fuzzy")
         }
 
         # Load upload settings for user uploads

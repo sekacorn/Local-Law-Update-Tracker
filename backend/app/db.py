@@ -122,6 +122,7 @@ class Database:
             (2, "fts_index", self._migration_002_fts_index()),
             (3, "fix_fts_index", self._migration_003_fix_fts_index()),
             (4, "user_uploads", self._migration_004_user_uploads()),
+            (5, "citation_verification", self._migration_005_citation_verification()),
         ]
 
     def _migration_001_initial_schema(self) -> str:
@@ -321,6 +322,26 @@ class Database:
         CREATE INDEX IF NOT EXISTS idx_document_upload_mime ON document(upload_mime) WHERE upload_mime IS NOT NULL;
         """
 
+    def _migration_005_citation_verification(self) -> str:
+        """Migration 005: Add citation verification and trust scoring fields"""
+        return """
+        -- Add citation verification fields to citation_span table
+        ALTER TABLE citation_span ADD COLUMN document_id TEXT;
+        ALTER TABLE citation_span ADD COLUMN quote_text TEXT;
+        ALTER TABLE citation_span ADD COLUMN verified INTEGER DEFAULT 0;
+        ALTER TABLE citation_span ADD COLUMN match_method TEXT DEFAULT 'exact';
+        ALTER TABLE citation_span ADD COLUMN confidence REAL DEFAULT 1.0;
+
+        -- Add foreign key index for document_id
+        CREATE INDEX IF NOT EXISTS idx_citation_span_document ON citation_span(document_id);
+
+        -- Add index for verified citations
+        CREATE INDEX IF NOT EXISTS idx_citation_span_verified ON citation_span(verified) WHERE verified = 1;
+
+        -- Add index for version citations (for faster lookups)
+        CREATE INDEX IF NOT EXISTS idx_citation_span_version ON citation_span(version_id);
+        """
+
     # User Uploads Helper Methods
 
     async def pin_document(self, doc_id: str) -> bool:
@@ -417,6 +438,158 @@ class Database:
             (doc_id,)
         )
         return result is not None
+
+    # Citation Span Helper Methods
+
+    async def save_citation_span(
+        self,
+        citation_id: str,
+        document_id: str,
+        version_id: str,
+        quote_text: str,
+        start_char: int,
+        end_char: int,
+        verified: bool,
+        match_method: str,
+        confidence: float,
+        heading: Optional[str] = None,
+        page_number: Optional[int] = None
+    ) -> bool:
+        """
+        Save a citation span to the database
+
+        Args:
+            citation_id: Unique citation ID
+            document_id: Document ID
+            version_id: Version ID
+            quote_text: The quoted text
+            start_char: Start character position
+            end_char: End character position
+            verified: Whether citation was verified
+            match_method: Match method used (exact/fuzzy/none)
+            confidence: Confidence score
+            heading: Optional section heading
+            page_number: Optional page number
+
+        Returns:
+            True if saved successfully
+        """
+        try:
+            await self.execute(
+                """
+                INSERT OR REPLACE INTO citation_span (
+                    id, document_id, version_id, quote_text,
+                    start_char, end_char, verified, match_method, confidence,
+                    heading, page_number
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    citation_id, document_id, version_id, quote_text,
+                    start_char, end_char, 1 if verified else 0, match_method, confidence,
+                    heading, page_number
+                )
+            )
+            return True
+        except Exception as e:
+            print(f"Error saving citation span {citation_id}: {e}")
+            return False
+
+    async def save_citations_batch(
+        self,
+        citations: List[Dict[str, Any]]
+    ) -> int:
+        """
+        Save multiple citation spans in a batch
+
+        Args:
+            citations: List of citation dictionaries
+
+        Returns:
+            Number of citations saved
+        """
+        if not citations:
+            return 0
+
+        try:
+            params_list = []
+            for citation in citations:
+                params_list.append((
+                    citation.get("id"),
+                    citation.get("document_id"),
+                    citation.get("version_id"),
+                    citation.get("quote_text"),
+                    citation.get("start_char"),
+                    citation.get("end_char"),
+                    1 if citation.get("verified", False) else 0,
+                    citation.get("match_method", "exact"),
+                    citation.get("confidence", 1.0),
+                    citation.get("heading"),
+                    citation.get("page_number")
+                ))
+
+            await self.execute_many(
+                """
+                INSERT OR REPLACE INTO citation_span (
+                    id, document_id, version_id, quote_text,
+                    start_char, end_char, verified, match_method, confidence,
+                    heading, page_number
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                params_list
+            )
+            return len(citations)
+        except Exception as e:
+            print(f"Error saving citation batch: {e}")
+            return 0
+
+    async def get_citation_spans(
+        self,
+        version_id: str
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all citation spans for a version
+
+        Args:
+            version_id: Version ID
+
+        Returns:
+            List of citation spans
+        """
+        return await self.fetch_all(
+            """
+            SELECT
+                id, document_id, version_id, quote_text,
+                start_char, end_char, verified, match_method, confidence,
+                heading, page_number
+            FROM citation_span
+            WHERE version_id = ?
+            ORDER BY start_char
+            """,
+            (version_id,)
+        )
+
+    async def delete_citation_spans(
+        self,
+        version_id: str
+    ) -> int:
+        """
+        Delete all citation spans for a version
+
+        Args:
+            version_id: Version ID
+
+        Returns:
+            Number of citations deleted
+        """
+        try:
+            cursor = await self.execute(
+                "DELETE FROM citation_span WHERE version_id = ?",
+                (version_id,)
+            )
+            return cursor.rowcount
+        except Exception as e:
+            print(f"Error deleting citation spans for version {version_id}: {e}")
+            return 0
 
     async def reset(self):
         """Reset database - delete all data and recreate schema"""
